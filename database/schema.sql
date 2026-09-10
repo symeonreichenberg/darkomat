@@ -1,0 +1,55 @@
+CREATE TABLE IF NOT EXISTS users (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(190) NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS groups (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    invite_code VARCHAR(32) NOT NULL UNIQUE,
+    created_by BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS group_members (
+    group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (group_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS events (
+    id BIGSERIAL PRIMARY KEY,
+    group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    title VARCHAR(150) NOT NULL,
+    event_date DATE NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS gifts (
+    id BIGSERIAL PRIMARY KEY,
+    group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    event_id BIGINT NULL REFERENCES events(id) ON DELETE SET NULL,
+    title VARCHAR(200) NOT NULL,
+    description TEXT NULL,
+    shop_url TEXT NULL,
+    image_data BYTEA NULL,
+    image_mime VARCHAR(50) NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS reservations (
+    id BIGSERIAL PRIMARY KEY,
+    gift_id BIGINT NOT NULL UNIQUE REFERENCES gifts(id) ON DELETE CASCADE,
+    reserved_by BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reserved_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_gifts_group ON gifts(group_id);
+CREATE INDEX IF NOT EXISTS idx_gifts_owner ON gifts(owner_id);
+CREATE INDEX IF NOT EXISTS idx_gifts_event ON gifts(event_id);
